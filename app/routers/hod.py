@@ -8,8 +8,12 @@ from pathlib import Path
 import qrcode
 from app.services.settings import PUBLIC_BASE_URL
 
+# --- حذف forcing C:\x2p_tmp and monkeypatch ---
+import tempfile
+from pathlib import Path
 
-BARCODES_DIR = Path("app/static/barcodes")
+# Use system tempdir for writable operations (serverless-friendly)
+BARCODES_DIR = Path(tempfile.gettempdir()) / "barcodes"
 BARCODES_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -19,7 +23,9 @@ def ensure_barcode_png(code: str) -> str:
         verify_url = f"{PUBLIC_BASE_URL}/verify/{code}"
         img = qrcode.make(verify_url)
         img.save(png_path)
-    return f"/static/barcodes/{code}.png"
+    # Return URL that will be served by route below
+    return f"/hod/barcode/{code}"
+
 
 # ---------- مجلد مؤقت آمن داخل المشروع ----------
 # ---------- مجلد مؤقت آمن داخل المشروع ----------
@@ -1955,5 +1961,6 @@ def skills_record_search(
             "current_user": user
         }
     )
+
 
 
