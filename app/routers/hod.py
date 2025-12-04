@@ -132,6 +132,15 @@ def _flatten_filter(value):
 
 templates.env.filters['flatten'] = _flatten_filter
 router = APIRouter(prefix="/hod", tags=["HOD"])
+from fastapi.responses import FileResponse, HTTPException
+
+@router.get("/barcode/{code}", include_in_schema=False)
+def serve_barcode(code: str):
+    png_path = BARCODES_DIR / f"{code}.png"
+    if not png_path.exists():
+        raise HTTPException(status_code=404, detail="Barcode not found")
+    return FileResponse(png_path, media_type="image/png")
+
 
 # ===================== Helpers =====================
 
@@ -1961,6 +1970,7 @@ def skills_record_search(
             "current_user": user
         }
     )
+
 
 
 
