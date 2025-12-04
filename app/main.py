@@ -12,6 +12,14 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette import status
 from app.routers import verify
+# near top of app/main.py (بعد تعريف app = FastAPI(...))
+from app.utils.tmp_setup import ensure_writable_tmp
+
+@app.on_event("startup")
+def app_startup():
+    tmpdir = ensure_writable_tmp()
+    print("Using tmpdir:", tmpdir)
+
 
 # ── الإعدادات ─────────────────────────────────────────────
 load_dotenv()
