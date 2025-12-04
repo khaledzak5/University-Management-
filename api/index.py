@@ -1,7 +1,12 @@
-import sys
-from pathlib import Path
+from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+app = FastAPI()
 
-from app.main import app
+@app.get("/")
+def redirect_to_docs():
+    return RedirectResponse(url="/docs")
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
