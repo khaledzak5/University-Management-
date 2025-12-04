@@ -45,7 +45,14 @@ from .routers import excel_api as excel_api_router         # /api/excel/... (Exc
 from .middlewares.maintenance import MaintenanceMiddleware  # وضع الصيانة
 
 # ── إنشاء التطبيق ───────────────────────────────────────
-app = FastAPI(title=APP_NAME, debug=DEBUG)
+app = FastAPI(
+    title=APP_NAME,
+    debug=DEBUG,
+    docs_url=None,
+    redoc_url=None,
+    openapi_url=None
+)
+
 
 # 1) نضيف SessionMiddleware أخيرًا ليكون هو الخارجي (يُنفّذ أولًا)
 app.add_middleware(
