@@ -22,28 +22,59 @@ def ensure_barcode_png(code: str) -> str:
     return f"/static/barcodes/{code}.png"
 
 # ---------- مجلد مؤقت آمن داخل المشروع ----------
-_FORCE_TMP = r"C:\x2p_tmp"
-Path(_FORCE_TMP).mkdir(parents=True, exist_ok=True)
-os.environ["TMPDIR"] = _FORCE_TMP
-os.environ["TMP"]    = _FORCE_TMP
-os.environ["TEMP"]   = _FORCE_TMP
-tempfile.tempdir     = _FORCE_TMP
+# ---------- مجلد مؤقت آمن داخل المشروع ----------
+import os
+import tempfile
+from pathlib import Path
 
+# استخدم متغيّر بيئي FORCE_TMP لو محدد، وإلا استخدم tempdir الافتراضي (/tmp على لينكس)
+_force_tmp_env = os.getenv("FORCE_TMP", "").strip() or None
+
+if _force_tmp_env:
+    _FORCE_TMP = _force_tmp_env
+else:
+    # tempfile.gettempdir() عادةً "/tmp" على بيئات لينكس/serverless
+    default_tmp = tempfile.gettempdir()
+    # أنشئ مجلد فرعي آمن داخل temp لتجنّب تداخل أسماء
+    _FORCE_TMP = os.path.join(default_tmp, "x2p_tmp")
+
+# أنشئ المجلد بطريقة آمنة؛ لو فشل، لا تكسر الاستيراد — بس سجّل تحذير
+try:
+    Path(_FORCE_TMP).mkdir(parents=True, exist_ok=True)
+except Exception as e:
+    print(f"Warning: could not create temp dir {_FORCE_TMP}: {e}")
+    # لا نرفع الاستثناء هنا لأن ذلك سيُفجّر استيراد التطبيق
+
+# اجعل متغيرات البيئه و tempfile توجه إلى المجلد الآمن
+try:
+    os.environ.setdefault("TMPDIR", _FORCE_TMP)
+    os.environ.setdefault("TMP", _FORCE_TMP)
+    os.environ.setdefault("TEMP", _FORCE_TMP)
+    tempfile.tempdir = _FORCE_TMP
+except Exception:
+    pass
+
+# إجبار mkstemp و NamedTemporaryFile لاستخدام الدليل المؤقت (محمي)
 _old_mkstemp = tempfile.mkstemp
 def _mkstemp_forced(*args, **kwargs):
     kwargs.setdefault("dir", _FORCE_TMP)
     return _old_mkstemp(*args, **kwargs)
 tempfile.mkstemp = _mkstemp_forced
 
-os.environ["PISA_TEMP_DIR"] = _FORCE_TMP
-
-_old_ntf = tempfile.NamedTemporaryFile
+_old_NamedTemporaryFile = tempfile.NamedTemporaryFile
 def _NamedTemporaryFile_forced(*args, **kwargs):
     kwargs.setdefault("dir", _FORCE_TMP)
-    if os.name == "nt":
-        kwargs["delete"] = False
-    return _old_ntf(*args, **kwargs)
+    # على نُظم ويندوز قد تحتاج delete=False؛ هنا نتحاشى التغيير القاسي
+    return _old_NamedTemporaryFile(*args, **kwargs)
 tempfile.NamedTemporaryFile = _NamedTemporaryFile_forced
+
+# يستخدمه xhtml2pdf / pisa أحيانًا
+try:
+    os.environ.setdefault("PISA_TEMP_DIR", _FORCE_TMP)
+except Exception:
+    pass
+# ---------------------------------------------------------------------
+
 
 # ---------------------------------------------------------------------
 
@@ -1924,4 +1955,5 @@ def skills_record_search(
             "current_user": user
         }
     )
+
 
